@@ -16,6 +16,8 @@ def div_by_35(start, end):
         i += 1
     return nums
 
+
+
 #Q2
 
 def temp_convert(temp):
@@ -25,6 +27,8 @@ def temp_convert(temp):
         return str(round(degree*(9/5) + 32)) + "°F"
     
     return str(round((degree-32)*(5/9))) + "°C"
+
+
 
 #Q3
 
@@ -38,6 +42,8 @@ def guessing():
     
     print('Well Guessed!')
 
+    
+    
 #Q4 & Q5
 
 switch = (lambda x: x + 1, lambda x: x-1)
@@ -48,6 +54,8 @@ for i in range(0,2):
         x = switch[i](x)
         print('* '*x)
 
+        
+        
 #Q6
 
 def reverser():
@@ -58,6 +66,8 @@ def reverser():
         newstr += user_str.pop()
 
     return newstr
+
+
 
 #Q7
 
@@ -72,12 +82,16 @@ def even_odd(seq):
     print(f'Number of even numbers: {num_e}')
     print(f'Number of odd numbers: {num_o}')
 
+    
+    
 #Q8
 
 def data_and_type(lst):
     for i in lst:
         print(str(i) + ': ' + str(type(i))[8:-2])
 
+        
+        
 #Q9
 
 for i in range(0,7):
