@@ -2,12 +2,24 @@ import openpyxl as op, logging as log
 from datetime import datetime as dt
 
 
+
 log.basicConfig(filename='mini_proj.log', level=log.INFO,
     format='%(asctime)s[%(levelname)s] - %(message)s')
 
 
+
 # requesting filename from user
 filename = input("Please provide the name of the Excel file you wish to process: ")
+
+
+
+# extracting rows from 'Summary Rolling MoM' sheet
+try:
+    lines = op.load_workbook(filename)['Summary Rolling MoM'].rows
+    log.info(f"Reading file: {filename}")
+except FileNotFoundError:
+    log.error(f"File '{filename}' not found in directory")
+
 
 
 # extracting date from filename; formatting string as 'MONTH YEAR'
@@ -15,15 +27,9 @@ date = filename.split('_')[-2:]
 date[1] = date[1].split('.')[0]
 date = ' '.join(date).upper()
 
-
-# extracting rows from 'Summary Rolling MoM' sheet
-lines = op.load_workbook(filename)['Summary Rolling MoM'].rows
-
-
 # initializing 'cells' list
 next(lines)
-cells = [i.value for i in next(lines)]
-
+cells, found = [i.value for i in next(lines)], False
 
 # iterating through rows, determining if row date matches filename, log.infoing requested information if so
 while type(cells[0]) == dt:
@@ -41,8 +47,12 @@ while type(cells[0]) == dt:
         log.info(f"DSAT: {cells[4]}")
         log.info(f"CSAT: {cells[5]}")
 
+        found = True
         break
 
     # row date does not match, replacing 'cells' with the next row
     cells = [i.value for i in next(lines)]
-    
+
+if not found:
+    log.error(f"No entry found for {date.capitalize()}")
+
