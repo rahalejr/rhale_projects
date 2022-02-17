@@ -2,6 +2,8 @@ import sys, openpyxl as op, logging as log
 from datetime import datetime as dt
 
 def main():
+    """ takes FILENAME and logs the information from the date specified in FILENAME """
+
     filename = sys.argv[1]
 
     # formatting logging output
@@ -18,7 +20,6 @@ def main():
     except FileNotFoundError:
         log.error(f"File '{filename}' not found in directory")
         return 
-
 
     # locating date in file
     log.info(f"Searching for {date.capitalize()} in {filename}")
@@ -86,6 +87,7 @@ def format_info(info, order_dict):
             formatted += [f"{i}: {format(info[order_dict[i]],'.2%')}"]
         else: formatted += [f"{i}: {info[order_dict[i]]}"]
     return formatted
+
 
 
 if __name__ == '__main__':
