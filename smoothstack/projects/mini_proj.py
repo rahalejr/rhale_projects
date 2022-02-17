@@ -1,71 +1,92 @@
+import sys, openpyxl as op, logging as log
+from datetime import datetime as dt
+
 def main():
-    import openpyxl as op, logging as log
-    from datetime import datetime as dt
+    filename = sys.argv[1]
 
+    # formatting logging output
+    log.basicConfig(filename='revised.log', level=log.INFO, 
+        format='%(asctime)s [%(levelname)s] - %(message)s')
 
+    # extracting date from FILENAME
+    date = get_date(filename)
 
-    log.basicConfig(filename='mini_proj.log', level=log.INFO,
-        format='%(asctime)s[%(levelname)s] - %(message)s')
-
-
-
-    # requesting filename from user
-    filename = input("Please provide the name of the Excel file you wish to process: ")
-
-
-
-    # extracting rows from 'Summary Rolling MoM' sheet
+    # reading file
     try:
-        lines = op.load_workbook(filename)['Summary Rolling MoM'].rows
+        rows = get_rows(filename)
         log.info(f"Reading file: {filename}")
     except FileNotFoundError:
         log.error(f"File '{filename}' not found in directory")
         return 
 
 
+    # locating date in file
+    log.info(f"Searching for {date.capitalize()} in {filename}")
+    req_info = find_date(rows,date)
+    if req_info == None:
+        log.error(f"No entry found for {date.capitalize()}")
+        return
+    
+    # formatting REQ_INFO and outputting to logfile
+    for i in format_info(req_info, rows[1]):
+        log.info(i)
 
-    # extracting date from filename; formatting string as 'MONTH YEAR'
-    date = filename.split('_')[-2:] 
-    date[1] = date[1].split('.')[0]
-    date = ' '.join(date).upper()
+  
+    
+def get_rows(filename):
+    """ Reads file matching FILENAME; returns generator of rows and a dictionary specifying the order of columns """
 
-    # extracting order of columns from first row, saving indices to dictionary
+    lines = op.load_workbook(filename)['Summary Rolling MoM'].rows
+
     cell_order, order_dict = [i.value for i in next(lines)][0:6], {}
     for i in cell_order:
         if i == None:
             order_dict['Date'] = cell_order.index(i)
-        order_dict[i] = cell_order.index(i)
+        else: order_dict[i.strip()] = cell_order.index(i)
+    
+    return lines, order_dict
 
-    # initializing 'cells' list (updated each iteration in the while loop below)
-    cells, found = [i.value for i in next(lines)], False
 
 
-    # iterating through rows, determining if row date matches filename, log.infoing requested information if so
+def get_date(filename):
+    """ Extracts date from FILENAME as string, formatted as 'MONTH YEAR' """
+
+    date = filename.split('_')[-2:] 
+    date[1] = date[1].split('.')[0]
+    return ' '.join(date).upper()
+    
+
+
+def find_date(rows, date): 
+    """ returns row from ROWS corresponding to DATE as a list """
+    
+    cells = [i.value for i in next(rows[0])]
+
     while type(cells[0]) == dt:
-        # formatting row date to match format of the 'date' variable (i.e. 'MONTH YEAR')
-        cell_date = dt.strftime(cells[order_dict['Date']], '%^B %Y')
+        # formatting row date to match format of DATE (i.e. 'MONTH YEAR')
+        cell_date = dt.strftime(cells[rows[1]['Date']], '%^B %Y')
 
-        # printing requested info from matching row; leaving while loop
         if cell_date == date:
-            # formatting percentages correctly
-            cells[1:6] = [format(x,'.2%') if x<1 else x for x in cells[1:6]]
-            
-            log.info(f"Info retrieved for {date.capitalize()}:")
-            log.info("Calls Offered: " + str(cells[order_dict['Calls Offered']]))
-            log.info("Abandon after 30s: " + str(cells[order_dict[' Abandon after 30s']]))
-            log.info("FCR: " + str(cells[order_dict['FCR']]))
-            log.info("DSAT: " + str(cells[order_dict['DSAT ']]))
-            log.info("CSAT: " + str(cells[order_dict['CSAT ']]))
-
-            found = True
-            break
-
-        # row date does not match, replacing 'cells' with the next row
-        cells = [i.value for i in next(lines)]
-
-    if not found:
-        log.error(f"No entry found for {date.capitalize()}")
-        return
+            return cells[0:6]
+    
+        cells = [i.value for i in next(rows[0])]
 
 
-main()
+
+def format_info(info, order_dict):
+    """ converts INFO to a list of properly formatted strings """
+    
+    formatted = []
+
+    for i in list(order_dict):
+        if i == 'Date':
+            date = dt.strftime(info[order_dict[i]], '%^B %Y')
+            formatted += [f"Info retrieved for {date.capitalize()}:"]
+        elif info[order_dict[i]] < 1:
+            formatted += [f"{i}: {format(info[order_dict[i]],'.2%')}"]
+        else: formatted += [f"{i}: {info[order_dict[i]]}"]
+    return formatted
+
+
+if __name__ == '__main__':
+    main()
