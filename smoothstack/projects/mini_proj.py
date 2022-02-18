@@ -1,36 +1,47 @@
-import sys, openpyxl as op, logging as log
+import os, openpyxl as op, logging as log
 from datetime import datetime as dt
 
-def main():
-    """ takes FILENAME and logs the information from the date specified in FILENAME """
 
-    filename = sys.argv[1]
+
+def main():
+    """ finds relevant FILES in current directory and logs the information from the date specified in a given FILENAME """
 
     # formatting logging output
     log.basicConfig(filename='revised.log', level=log.INFO, 
         format='%(asctime)s [%(levelname)s] - %(message)s')
 
-    # extracting date from FILENAME
-    date = get_date(filename)
 
-    # reading file
-    try:
-        rows = get_rows(filename)
-        log.info(f"Reading file: {filename}")
-    except FileNotFoundError:
-        log.error(f"File '{filename}' not found in directory")
-        return 
+    files = [i for i in os.listdir() if i[0:22] == 'expedia_report_monthly']
+    processed = []
 
-    # locating date in file
-    log.info(f"Searching for {date.capitalize()} in {filename}")
-    req_info = find_date(rows,date)
-    if req_info == None:
-        log.error(f"No entry found for {date.capitalize()}")
-        return
-    
-    # formatting REQ_INFO and outputting to logfile
-    for i in format_info(req_info, rows[1]):
-        log.info(i)
+    for filename in files:
+
+        if filename in processed:
+            continue
+
+        # extracting date from FILENAME
+        date = get_date(filename)
+
+        # reading file
+        try:
+            rows = get_rows(filename)
+            log.info(f"Reading file: {filename}")
+        except FileNotFoundError:
+            log.error(f"File '{filename}' not found in directory")
+            continue
+
+        # locating date in file
+        log.info(f"Searching for {date.capitalize()} in {filename}")
+        req_info = find_date(rows,date)
+        if req_info == None:
+            log.error(f"No entry found for {date.capitalize()}")
+            continue
+            
+        # formatting REQ_INFO and outputting to logfile
+        for cell in format_info(req_info, rows[1]):
+            log.info(cell)
+
+        processed += [filename]
 
   
     
