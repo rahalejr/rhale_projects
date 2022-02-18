@@ -1,17 +1,23 @@
 import os, openpyxl as op, logging as log
 from datetime import datetime as dt
 
+# formatting logging output
+log.basicConfig(filename='revised.log', level=log.INFO, 
+    format='%(asctime)s [%(levelname)s] - %(message)s')
+
 
 
 def main():
     """ finds relevant FILES in current directory and logs the information from the date specified in a given FILENAME """
 
-    # formatting logging output
-    log.basicConfig(filename='revised.log', level=log.INFO, 
-        format='%(asctime)s [%(levelname)s] - %(message)s')
+    dir_path = os.path.abspath(os.getcwd())
 
+    # creating directory for processed files if it does not already exist ('archive')
+    try: os.mkdir(f"{dir_path}/archive")
+    except FileExistsError: print('fuck')
 
-    files = [i for i in os.listdir() if i[0:22] == 'expedia_report_monthly' and i.endswith('.xlsx.')]
+    # assigning file names of monthly report files found in current directory
+    files = [i for i in os.listdir(dir_path) if i[0:22] == 'expedia_report_monthly' and i.endswith('.xlsx')]
     processed = []
 
     for filename in files:
@@ -23,8 +29,12 @@ def main():
         date = get_date(filename)
 
         # reading file
-        rows = get_rows(filename)
-        log.info(f"Reading file: {filename}")
+        try:
+            rows = get_rows(filename)
+            log.info(f"Reading file: {filename}")
+        except FileNotFoundError:
+            log.error(f"File '{filename}' not found in directory")
+            continue
 
         # locating date in file
         log.info(f"Searching for {date.capitalize()} in {filename}")
@@ -38,6 +48,9 @@ def main():
             log.info(cell)
 
         processed += [filename]
+
+        # moving file to archive directory
+        os.rename(f"{dir_path}/{filename}",f"{dir_path}/archive/{filename}")
 
   
     
