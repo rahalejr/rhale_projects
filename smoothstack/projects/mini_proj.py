@@ -11,7 +11,7 @@ def main():
         format='%(asctime)s [%(levelname)s] - %(message)s')
 
 
-    files = [i for i in os.listdir() if i[0:22] == 'expedia_report_monthly']
+    files = [i for i in os.listdir() if i[0:22] == 'expedia_report_monthly' and i.endswith('.xlsx.')]
     processed = []
 
     for filename in files:
@@ -23,12 +23,8 @@ def main():
         date = get_date(filename)
 
         # reading file
-        try:
-            rows = get_rows(filename)
-            log.info(f"Reading file: {filename}")
-        except FileNotFoundError:
-            log.error(f"File '{filename}' not found in directory")
-            continue
+        rows = get_rows(filename)
+        log.info(f"Reading file: {filename}")
 
         # locating date in file
         log.info(f"Searching for {date.capitalize()} in {filename}")
