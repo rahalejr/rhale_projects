@@ -1,27 +1,31 @@
-import os, openpyxl as op, logging as log
+import sys, os, openpyxl as op, logging as log
 from datetime import datetime as dt
 
 # formatting logging output
 log.basicConfig(filename='revised.log', level=log.INFO, 
     format='%(asctime)s [%(levelname)s] - %(message)s')
 
+# getting path to current directory
+dir_path = os.path.abspath(os.getcwd())
+
+# creating directory for processed files if it does not already exist ('archive')
+try: os.mkdir(f"{dir_path}/archive")
+except FileExistsError: pass
+
+# creating directory for files that threw an error, if it does not already exist ('errored')
+try: os.mkdir(f"{dir_path}/errored")
+except FileExistsError: pass
+
 
 
 def main():
     """ finds relevant FILES in current directory and logs the information from the date specified in a given FILENAME """
 
-    dir_path = os.path.abspath(os.getcwd())
-
-    # creating directory for processed files if it does not already exist ('archive')
-    try: os.mkdir(f"{dir_path}/archive")
-    except FileExistsError: print('fuck')
-
     # assigning file names of monthly report files found in current directory
-    files = [i for i in os.listdir(dir_path) if i[0:22] == 'expedia_report_monthly' and i.endswith('.xlsx')]
-    processed = []
+    files = [i for i in os.listdir(dir_path) if 'expedia_report_monthly' in i and i.endswith('.xlsx')]
+    processed, errored = [],[]
 
     for filename in files:
-
         if filename in processed:
             continue
 
@@ -30,10 +34,11 @@ def main():
 
         # reading file
         try:
-            rows = get_rows(filename)
+            rows = rows_and_order(filename)
             log.info(f"Reading file: {filename}")
         except FileNotFoundError:
             log.error(f"File '{filename}' not found in directory")
+            os.rename(f"{dir_path}/{filename}",f"{dir_path}/errored/{filename}")
             continue
 
         # locating date in file
@@ -41,11 +46,16 @@ def main():
         req_info = find_date(rows,date)
         if req_info == None:
             log.error(f"No entry found for {date.capitalize()}")
+            os.rename(f"{dir_path}/{filename}",f"{dir_path}/errored/{filename}")
             continue
             
         # formatting REQ_INFO and outputting to logfile
         for cell in format_info(req_info, rows[1]):
             log.info(cell)
+
+        # formatting and outputting matching info from second sheet
+        for cell in part_two(filename):
+           log.info(cell)
 
         processed += [filename]
 
@@ -54,7 +64,7 @@ def main():
 
   
     
-def get_rows(filename):
+def rows_and_order(filename):
     """ Reads file matching FILENAME; returns generator of rows and a dictionary specifying the order of columns """
 
     lines = op.load_workbook(filename)['Summary Rolling MoM'].rows
@@ -73,6 +83,7 @@ def get_date(filename):
     """ Extracts date from FILENAME as string, formatted as 'MONTH YEAR' """
 
     date = filename.split('_')[-2:] 
+    date[0] = date[0]
     date[1] = date[1].split('.')[0]
     return ' '.join(date).upper()
     
@@ -110,5 +121,37 @@ def format_info(info, order_dict):
 
 
 
+def part_two(filename):
+
+    lines = op.load_workbook(filename)['VOC Rolling MoM'].rows
+    row = [i.value for i in next(lines)][1:24]
+
+    date_cols = [dt.strftime(i,'%^B %Y') if type(i) == dt else i.upper() + ' 2018' for i in row]
+
+    matched_col = date_cols.index(get_date(filename)) + 1
+
+    next(lines)
+    next(lines)
+
+    info = []
+    for i in ['Promoters', 'Passives', 'Detractors']:
+        val,cond = [i.value for i in next(lines)][matched_col],100
+        if i == 'Promoters': cond = 200
+        info += [f"{i}: {'bad' if val < cond else 'good'}"]
+
+    return info
+
+
+
+
+
+
 if __name__ == '__main__':
     main()
+
+
+#sys.stdout = open('file.lst','w')
+
+#sys.stdout.close()
+
+# filename = 'expedia_report_monthly_march_2018.xlsx'
