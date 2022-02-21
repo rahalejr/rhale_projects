@@ -1,4 +1,4 @@
-import sys, os, openpyxl as op, logging as log
+import sys, os, calendar, openpyxl as op, logging as log
 from datetime import datetime as dt
 
 # formatting logging output
@@ -22,18 +22,19 @@ def main():
     """ finds relevant FILES in current directory and logs the information from the date specified in a given FILENAME """
 
     # assigning file names of monthly report files found in current directory
-    files = [i for i in os.listdir(dir_path) if 'expedia_report_monthly' in i and i.endswith('.xlsx')]
+    files = ordered_files(dir_path)
     processed, errored = [],[]
 
     for filename in files:
         if filename in processed:
+            log.error(f"File '{filename}' has already been processed.")
+            os.rename(f"{dir_path}/{filename}",f"{dir_path}/errored/{filename}")
             continue
 
-        # extracting date from FILENAME
-        date = get_date(filename)
 
         # reading file
         try:
+            date = get_date(filename)
             rows = rows_and_order(filename)
             log.info(f"Reading file: {filename}")
         except FileNotFoundError:
@@ -41,7 +42,7 @@ def main():
             os.rename(f"{dir_path}/{filename}",f"{dir_path}/errored/{filename}")
             continue
 
-        # locating date in file
+        # locating matching info from first sheet
         log.info(f"Searching for {date.capitalize()} in {filename}")
         req_info = find_date(rows,date)
         if req_info == None:
@@ -49,20 +50,37 @@ def main():
             os.rename(f"{dir_path}/{filename}",f"{dir_path}/errored/{filename}")
             continue
             
-        # formatting REQ_INFO and outputting to logfile
+        # formatting REQ_INFO from first sheet and outputting to logfile
         for cell in format_info(req_info, rows[1]):
             log.info(cell)
 
         # formatting and outputting matching info from second sheet
-        for cell in part_two(filename):
-           log.info(cell)
+        try:
+            for cell in sheet_two(filename):
+                log.info(cell)
+        except StopIteration:
+            log.error('Unable to locate requested information')
 
         processed += [filename]
 
         # moving file to archive directory
         os.rename(f"{dir_path}/{filename}",f"{dir_path}/archive/{filename}")
 
-  
+
+
+def ordered_files(directory):
+
+    # dictionary for converting month names to integers 1-12
+    month_dict = {month.upper(): index for index, month in enumerate(calendar.month_name) if month}
+
+    # assigning file names of monthly report files found in current directory
+    files = [i for i in os.listdir(directory) if 'expedia_report_monthly' in i and i.endswith('.xlsx')]
+
+    order = [month_dict[get_date(i).split()[0]] for i in files]
+    
+    return [x for x, y in sorted(zip(files, order))]
+
+
     
 def rows_and_order(filename):
     """ Reads file matching FILENAME; returns generator of rows and a dictionary specifying the order of columns """
@@ -121,7 +139,7 @@ def format_info(info, order_dict):
 
 
 
-def part_two(filename):
+def sheet_two(filename):
 
     lines = op.load_workbook(filename)['VOC Rolling MoM'].rows
     row = [i.value for i in next(lines)][1:24]
@@ -130,28 +148,24 @@ def part_two(filename):
 
     matched_col = date_cols.index(get_date(filename)) + 1
 
-    next(lines)
-    next(lines)
-
     info = []
-    for i in ['Promoters', 'Passives', 'Detractors']:
-        val,cond = [i.value for i in next(lines)][matched_col],100
-        if i == 'Promoters': cond = 200
-        info += [f"{i}: {'bad' if val < cond else 'good'}"]
 
+    while len(info)<3:
+
+        row, labels = [i.value for i in next(lines)], ['Promoters', 'Passives', 'Dectractors']
+        
+        if type(row[0]) == str:
+            label = row[0].split()[0]
+            if label in labels:
+                val,cond = row[matched_col],100
+                if label == 'Promoters': cond = 200
+                info += [f"{label}: {val} ({'bad' if val < cond else 'good'})"]
     return info
-
-
-
 
 
 
 if __name__ == '__main__':
     main()
-
-
-#sys.stdout = open('file.lst','w')
-
-#sys.stdout.close()
-
-# filename = 'expedia_report_monthly_march_2018.xlsx'
+    #try: main()
+    #except:
+        #log.critical('Unknown error occured: some files may not have been processed')
