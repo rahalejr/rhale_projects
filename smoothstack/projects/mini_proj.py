@@ -23,10 +23,13 @@ def main():
 
     # assigning file names of monthly report files found in current directory
     files = ordered_files(dir_path)
-    processed, errored = [],[]
+    processed, errored = open('file.lst','a+'),[]
 
     for filename in files:
-        if filename in processed:
+
+        processed.seek(0)
+
+        if filename in processed.read().split('\n'):
             log.error(f"File '{filename}' has already been processed.")
             os.rename(f"{dir_path}/{filename}",f"{dir_path}/errored/{filename}")
             continue
@@ -61,10 +64,12 @@ def main():
         except StopIteration:
             log.error('Unable to locate requested information')
 
-        processed += [filename]
+        processed.write(f'\n{filename}')
 
         # moving file to archive directory
         os.rename(f"{dir_path}/{filename}",f"{dir_path}/archive/{filename}")
+    
+    processed.close()
 
 
 
@@ -160,12 +165,18 @@ def sheet_two(filename):
                 val,cond = row[matched_col],100
                 if label == 'Promoters': cond = 200
                 info += [f"{label}: {val} ({'bad' if val < cond else 'good'})"]
+                
+
     return info
+
+
+def errored(filename):
+    pass
 
 
 
 if __name__ == '__main__':
-    main()
-    #try: main()
-    #except:
-        #log.critical('Unknown error occured: some files may not have been processed')
+
+    try: main()
+    except:
+        log.critical('Unknown error occured: some files may not have been processed')
