@@ -20,34 +20,35 @@ except FileExistsError: pass
 def main():
     """ finds relevant FILES in current directory and logs the information from the date specified in a given FILENAME """
 
-    # assigning file names of monthly report files found in current directory
+    # locating valid files in current directory; removing files with invalid filenames 
     files, errored = ordered_files(dir_path)
-    [move_error(file,dir_path) for file in errored]
+    for i in errored:
+        log.error(f"Invalid Filename: '{i}'")
+        move_error(i,dir_path)
 
     # writing processed filenames to file.lst
     processed = open('file.lst','a+')
 
     for filename in files:
 
-        processed.seek(0)
-
         # checking for duplicate files
+        processed.seek(0)
         if filename in processed.read().split('\n'):
-            log.error(f"File: '{filename}' has already been processed.")
+            log.error(f"File: '{filename}' has already been processed")
             move_error(filename,dir_path)
             continue
 
-        # reading file
+        # reading file; extracting rows from sheet one
         try:
+            log.info(f"Reading file: {filename}")
             date = get_date(filename) 
             rows = rows_and_order(filename)
-            log.info(f"Reading file: {filename}")
         except:
             log.error(f'Unable to locate requested information in {filename}')
             move_error(filename,dir_path)
             continue
 
-        # locating matching info from first sheet
+        # locating info from first sheet matching FILENAME
         log.info(f"Searching for {date.capitalize()} in {filename}")
         req_info = match_date(rows,date)
         if req_info == None:
@@ -68,10 +69,8 @@ def main():
             move_error(filename,dir_path)
             continue
 
-        # appending FILENAME to PROCESSED
+        # appending FILENAME to file.lst and moving to archive directory
         processed.write(f'{filename}\n')
-
-        # moving file to archive directory
         os.rename(f"{dir_path}/{filename}",f"{dir_path}/archive/{filename}")
     
     processed.close()
@@ -89,8 +88,8 @@ def ordered_files(directory):
     for i in files:
         try: order += [month_dict[get_date(i).split()[0]]]
         except:
-            errored += [i]  
-    [files.remove(i) for i in errored]
+            errored += [i]
+    [files.remove(i) for i in errored]  
     return [y for x, y in sorted(zip(order, files))], errored 
 
     
@@ -163,13 +162,12 @@ def sheet_two(filename):
                 if label == 'Promoters': cond = 200
                 info += [f"{label}: {val} ({'bad' if val < cond else 'good'})"]        
     return info
-    
+
 
 move_error = lambda filename, dir_path: os.rename(f"{dir_path}/{filename}",f"{dir_path}/errored/{filename}") 
 
 
 if __name__ == '__main__':
-    main()
     try: main()
     except:
         log.critical('Unknown error occured: some files may not have been processed')
