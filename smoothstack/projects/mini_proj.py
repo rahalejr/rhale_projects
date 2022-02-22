@@ -44,7 +44,7 @@ def main():
             date = get_date(filename) 
             rows = rows_and_order(filename)
         except:
-            log.error(f'Unable to locate requested information in {filename}')
+            log.error(f"Unable to locate requested information from 'Summary Rolling MoM' in {filename}")
             move_error(filename,dir_path)
             continue
 
@@ -65,7 +65,7 @@ def main():
             for cell in sheet_two(filename):
                 log.info(cell)
         except:
-            log.error(f'Unable to locate requested information in {filename}')
+            log.error(f"Unable to locate requested information from 'VOC Rolling MoM' in {filename}")
             move_error(filename,dir_path)
             continue
 
@@ -152,9 +152,9 @@ def sheet_two(filename):
     date_cols = [dt.strftime(i,'%^B %Y') if type(i) == dt else i.upper() + ' 2018' for i in row]
     matched_col = date_cols.index(get_date(filename)) + 1
 
-    info = []
-    while len(info)<3:
-        row, labels = [i.value for i in next(lines)], ['Promoters', 'Passives', 'Dectractors']
+    info,n = [],0
+    while len(info)<3 and n<20:
+        row, labels, n = [i.value for i in next(lines)], ['Promoters', 'Passives', 'Dectractors'], n + 1
         if type(row[0]) == str:
             label = row[0].split()[0]
             if label in labels:
