@@ -17,7 +17,6 @@ try: os.mkdir(f"{dir_path}/errored")
 except FileExistsError: pass
 
 
-
 def main():
     """ finds relevant FILES in current directory and logs the information from the date specified in a given FILENAME """
 
