@@ -37,7 +37,6 @@ def main():
             move_error(filename,dir_path)
             continue
 
-
         # reading file
         try:
             date = get_date(filename) 
@@ -47,7 +46,6 @@ def main():
             log.error(f'Unable to locate requested information in {filename}')
             move_error(filename,dir_path)
             continue
-
 
         # locating matching info from first sheet
         log.info(f"Searching for {date.capitalize()} in {filename}")
