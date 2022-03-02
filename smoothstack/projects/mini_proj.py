@@ -1,7 +1,7 @@
 import sys, os, calendar, openpyxl as op, logging as log
 from datetime import datetime as dt
 
-# formatting logging output
+# formatting log output
 log.basicConfig(filename='mini_proj.log', level=log.INFO, 
     format='%(asctime)s [%(levelname)s] - %(message)s')
 
